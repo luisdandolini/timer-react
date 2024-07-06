@@ -4,16 +4,13 @@ import { GlobalStyle } from "./styles/global";
 import { Router } from "./Router";
 import { BrowserRouter } from "react-router-dom";
 
-
 export function App() {
   return (
-    <>
+    <ThemeProvider theme={defaultTheme}>
       <BrowserRouter>
-        <ThemeProvider theme={defaultTheme}>
-          <Router />
-          <GlobalStyle />
-        </ThemeProvider>
+        <Router />
+        <GlobalStyle />
       </BrowserRouter>
-    </>
-  )
+    </ThemeProvider>
+  );
 }
