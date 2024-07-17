@@ -1,4 +1,4 @@
-import { createContext, useState } from "react";
+import { createContext, useReducer, useState } from "react";
 
 interface CreateCycleData {
   task: string;
@@ -31,12 +31,53 @@ interface CyclesContextProviderProps {
   children: React.ReactNode;
 }
 
+interface CyclesState {
+  cycles: Cycle[];
+  activeCycleId: string | null;
+}
+
 export function CyclesContextProvider({
   children,
 }: CyclesContextProviderProps) {
-  const [cycles, setCycles] = useState<Cycle[]>([]);
-  const [activeCycleId, setActiveCycleId] = useState<string | null>(null);
+  const [cyclesState, dispatch] = useReducer(
+    (state: CyclesState, action: any) => {
+      if (action.type === "CREATE_CYCLE") {
+        return {
+          ...state,
+          cycles: [...state.cycles, action.payload.newCycle],
+          activeCycleId: action.payload.newCycle.id,
+        };
+      }
+      if (action.type === "INTERRUPT_CYCLE") {
+        return {
+          ...state,
+          cycles: [
+            state.cycles.map((cycle) => {
+              if (cycle.id === state.activeCycleId) {
+                return {
+                  ...cycle,
+                  interrupedDate: new Date(),
+                };
+              } else {
+                return cycle;
+              }
+            }),
+          ],
+          activeCycleId: null,
+        };
+      }
+      return state;
+    },
+    {
+      cycles: [],
+      activeCycleId: null,
+    }
+  );
+
   const [amountSecondsPassed, setAmountSecondsPassed] = useState<number>(0);
+
+  const { cycles, activeCycleId } = cyclesState;
+
   const activeCycle = cycles.find((cycle) => cycle.id === activeCycleId);
 
   function setSecondsPassed(seconds: number) {
@@ -44,18 +85,24 @@ export function CyclesContextProvider({
   }
 
   function markCurrentCycleAsFinished() {
-    setCycles((state) =>
-      state.map((cycle) => {
-        if (cycle.id === activeCycleId) {
-          return {
-            ...cycle,
-            finishedDate: new Date(),
-          };
-        } else {
-          return cycle;
-        }
-      })
-    );
+    dispatch({
+      type: "FINISH_CYCLE",
+      payload: {
+        activeCycleId,
+      },
+    });
+    // setCycles((state) =>
+    //   state.map((cycle) => {
+    //     if (cycle.id === activeCycleId) {
+    //       return {
+    //         ...cycle,
+    //         finishedDate: new Date(),
+    //       };
+    //     } else {
+    //       return cycle;
+    //     }
+    //   })
+    // );
   }
 
   function createNewCycle(data: CreateCycleData) {
@@ -66,27 +113,38 @@ export function CyclesContextProvider({
       startDate: new Date(),
     };
 
-    setCycles((state) => [...state, newCycle]);
-    setActiveCycleId(newCycle.id);
+    dispatch({
+      type: "CREATE_CYCLE",
+      payload: {
+        newCycle,
+      },
+    });
+
+    // setCycles((state) => [...state, newCycle]);
     setAmountSecondsPassed(0);
   }
 
   function interreruptCurrentCycle() {
-    setActiveCycleId(null);
-    setAmountSecondsPassed(0);
+    dispatch({
+      type: "INTERRUPT_CYCLE",
+      payload: {
+        activeCycleId,
+      },
+    });
 
-    setCycles((state) =>
-      state.map((cycle) => {
-        if (cycle.id === activeCycleId) {
-          return {
-            ...cycle,
-            interrupedDate: new Date(),
-          };
-        } else {
-          return cycle;
-        }
-      })
-    );
+    // setCycles((state) =>
+    // state.map((cycle) => {
+    //   if (cycle.id === activeCycleId) {
+    //     return {
+    //       ...cycle,
+    //       interrupedDate: new Date(),
+    //     };
+    //   } else {
+    //     return cycle;
+    //   }
+    // })
+    // );
+    setAmountSecondsPassed(0);
   }
 
   return (
